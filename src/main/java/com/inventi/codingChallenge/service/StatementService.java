@@ -3,6 +3,8 @@ package com.inventi.codingChallenge.service;
 import com.inventi.codingChallenge.model.Statement;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+
 @Service
 public interface StatementService {
 
@@ -11,4 +13,9 @@ public interface StatementService {
     void exportStatement() ;
 
     void calculateAccountBalance();
+
+    void save(Statement statement);
+
+    void saveAll(Collection<Statement> statement);
+
 }
