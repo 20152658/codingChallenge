@@ -1,0 +1,5 @@
+"Statement(id=1, accNumber=﻿""LT0123456789012"", operationDate=2020-04-14T22:42:55, beneficiary=Mamytei, transComment=Uz skania sriubyte, amount=-15.00, currency=EUR)"
+"Statement(id=2, accNumber=LT0123456789012, operationDate=2020-04-14T22:42:55, beneficiary=Teveliui, transComment=Uz skanu aluti, amount=-10.00, currency=EUR)"
+"Statement(id=3, accNumber=LT0123456789012, operationDate=2020-04-14T22:42:55, beneficiary=Seneliui, transComment=Uz slides, amount=-55.00, currency=EUR)"
+"Statement(id=4, accNumber=LT0123456789012, operationDate=2020-04-14T22:42:55, beneficiary=Mociutei, transComment=Uz skania uogiene, amount=-60.00, currency=EUR)"
+"Statement(id=5, accNumber=LT0123456789012, operationDate=2020-04-14T22:42:55, beneficiary=Inventi, transComment=Darbo uzmokestis, amount=1400.00, currency=EUR)"
