@@ -1,16 +1,21 @@
 package com.inventi.codingChallenge.service;
 
 import com.inventi.codingChallenge.model.Statement;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 
 @Service
 public interface StatementService {
 
     void importStatement(Statement statement);
 
-    void exportStatement() ;
+    List<Statement> findAllStatements() ;
+
+    List<Statement> getStatementsByDate( LocalDateTime dateFrom, LocalDateTime dateTo);
 
     void calculateAccountBalance();
 

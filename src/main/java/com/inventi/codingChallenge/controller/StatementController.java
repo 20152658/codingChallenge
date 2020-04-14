@@ -5,22 +5,20 @@ import com.inventi.codingChallenge.model.Statement;
 import com.inventi.codingChallenge.service.FileStorageService;
 import com.inventi.codingChallenge.service.StatementService;
 import com.inventi.codingChallenge.utils.CSVUtils;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.core.io.Resource;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.swing.plaf.nimbus.State;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @RestController
@@ -32,72 +30,48 @@ public class StatementController {
     @Autowired
     private StatementService statementService;
 
+    private final static Logger log = LoggerFactory.getLogger(StatementController.class);
 
-    @GetMapping("/hello")
-    public String hello(@RequestParam(value = "name", defaultValue = "World") String name) {
-        return String.format("Hello %s!", name);
-    }
-
-    @PostMapping("/uploadFile")
+    @PostMapping("/uploadStatements")
     public UploadFileResponse uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         String fileName = fileStorageService.storeFile(file);
 
-
-        Collection<List<String>> csvLines = CSVUtils.parseCSVFile(convertMultiPartToFile(file));
-        statementService.saveAll(convertCSVLineToStatement(csvLines));
+        try (Reader in = new FileReader(CSVUtils.convertMultiPartToFile(file))) {
+            Iterable<CSVRecord> records = CSVFormat.EXCEL.parse(in);
+            statementService.saveAll(CSVUtils.convertCSVLineToStatement(records));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/downloadFile/")
                 .path(fileName)
                 .toUriString();
-
         return new UploadFileResponse(fileName, fileDownloadUri,
                 file.getContentType(), file.getSize());
     }
 
-    private Collection<Statement> convertCSVLineToStatement(Collection<List<String>> csvLines ){
-        Collection<Statement> statements = new ArrayList<>();
-        for ( List<String> line: csvLines) {
-            Statement statement = new Statement();
-            statement.setAccNumber(line.get(0));
-            statement.setOperationDate(new Date(line.get(1)));
-            statement.setBeneficiary(line.get(2));
-            statement.setTransComment(line.get(3));
-            statement.setAmount(Double.valueOf(line.get(4)));
-            statement.setCurrency(line.get(5));
-            statements.add(statement);
-        }
-        return statements;
-    }
-
-    private File convertMultiPartToFile(MultipartFile file ) throws IOException
-    {
-        File convFile = new File( file.getOriginalFilename() );
-        FileOutputStream fos = new FileOutputStream( convFile );
-        fos.write( file.getBytes() );
-        fos.close();
-        return convFile;
-    }
-
-    @GetMapping("/downloadFile/{fileName:.+}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String fileName, HttpServletRequest request) throws Exception {
-
-        Resource resource = fileStorageService.loadFileAsResource(fileName);
-
-        String contentType = null;
+    @PostMapping("/exportFile")
+    @ResponseBody
+    public void exportFile(HttpServletResponse response, @RequestParam(required = false, name="dateFrom") String dateFromParam, @RequestParam(required = false, name="dateTo") String dateToParam) {
+        String filename = "statements.csv";
+        CSVPrinter csvPrinter;
+        LocalDateTime dateFrom = LocalDateTime.parse("1800-01-01T00:00:00");
+        LocalDateTime dateTo = LocalDateTime.parse("3000-01-01T00:00:00");
+        if(dateFromParam != null) dateFrom = LocalDateTime.parse(dateFromParam);
+        if(dateToParam!=null) dateTo= LocalDateTime.parse(dateToParam);
+        List<Statement> statements = statementService.getStatementsByDate(dateFrom, dateTo);
         try {
-            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
-        } catch (IOException ex) {
-           // logger.info("Could not determine file type.");
+            response.setContentType("text/csv");
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" + filename + "\"");
+            csvPrinter = new CSVPrinter(response.getWriter(),
+                    CSVFormat.EXCEL);
+            for (Statement statement : statements) {
+                csvPrinter.printRecord(Arrays.asList(statement));
+            }
+            csvPrinter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        if(contentType == null) {
-            contentType = "application/octet-stream";
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
     }
-
 }

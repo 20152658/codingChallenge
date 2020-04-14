@@ -6,7 +6,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import java.util.Date;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -22,7 +23,7 @@ public class Statement {
     private String accNumber;
 
     @Column(name = "Operation_date", nullable = false)
-    private Date operationDate;
+    private LocalDateTime operationDate;
 
     @Column(name = "Beneficiary", nullable = false)
     private String beneficiary;
@@ -31,7 +32,7 @@ public class Statement {
     private String transComment;
 
     @Column(name = "Amount", nullable = false)
-    private double amount;
+    private BigDecimal amount;
 
     @Column(name = "Currency", nullable = false)
     private String currency;

@@ -1,110 +1,60 @@
 package com.inventi.codingChallenge.utils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Scanner;
+import com.inventi.codingChallenge.model.Statement;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.*;
 
 public class CSVUtils {
+    private final static Logger log = LoggerFactory.getLogger(CSVUtils.class);
 
-    private static final char DEFAULT_SEPARATOR = ',';
-    private static final char DEFAULT_QUOTE = '"';
-
-
-    public static Collection<List<String>> parseCSVFile (File file) throws FileNotFoundException {
+    public static Collection<List<String>> parseCSVFile(Reader file) throws IOException {
         Scanner scanner = new Scanner(file);
+        List<CSVRecord> records = CSVFormat.EXCEL.parse(file).getRecords();
+        for(CSVRecord record : records) {
+            log.debug(record.toString());
+        }
         Collection<List<String>> lines = new ArrayList<>();
         while (scanner.hasNext()) {
-            List<String> line = parseLine(scanner.nextLine());
+            List<String> line = Arrays.asList(scanner.next().split(","));
+
             lines.add(line);
         }
         scanner.close();
         return lines;
     }
 
-    public static List<String> parseLine(String cvsLine) {
-        return parseLine(cvsLine, DEFAULT_SEPARATOR, DEFAULT_QUOTE);
+     public static Collection<Statement> convertCSVLineToStatement(Iterable<CSVRecord> records){
+        Collection<Statement> statements = new ArrayList<>();
+        for (CSVRecord record : records) {
+            Statement statement = new Statement();
+            statement.setAccNumber(record.get(0));
+            statement.setOperationDate(LocalDateTime.parse(record.get(1)));
+            statement.setBeneficiary(record.get(2));
+            statement.setTransComment(record.get(3));
+            statement.setAmount(BigDecimal.valueOf(Long.parseLong(record.get(4))));
+            statement.setCurrency(record.get(5));
+            statements.add(statement);
+        }
+        return statements;
     }
 
-    public static List<String> parseLine(String cvsLine, char separators) {
-        return parseLine(cvsLine, separators, DEFAULT_QUOTE);
+    public static File convertMultiPartToFile(MultipartFile file) throws IOException
+    {
+        File convFile = new File( file.getOriginalFilename() );
+        FileOutputStream fos = new FileOutputStream( convFile );
+        fos.write( file.getBytes() );
+        fos.close();
+        return convFile;
     }
 
-    public static List<String> parseLine(String cvsLine, char separators, char customQuote) {
 
-        List<String> result = new ArrayList<>();
-
-        if (cvsLine == null && cvsLine.isEmpty()) {
-            return result;
-        }
-
-        if (customQuote == ' ') {
-            customQuote = DEFAULT_QUOTE;
-        }
-
-        if (separators == ' ') {
-            separators = DEFAULT_SEPARATOR;
-        }
-
-        StringBuffer curVal = new StringBuffer();
-        boolean inQuotes = false;
-        boolean startCollectChar = false;
-        boolean doubleQuotesInColumn = false;
-
-        char[] chars = cvsLine.toCharArray();
-
-        for (char ch : chars) {
-
-            if (inQuotes) {
-                startCollectChar = true;
-                if (ch == customQuote) {
-                    inQuotes = false;
-                    doubleQuotesInColumn = false;
-                } else {
-                    if (ch == '\"') {
-                        if (!doubleQuotesInColumn) {
-                            curVal.append(ch);
-                            doubleQuotesInColumn = true;
-                        }
-                    } else {
-                        curVal.append(ch);
-                    }
-                }
-            } else {
-                if (ch == customQuote) {
-
-                    inQuotes = true;
-
-                    if (chars[0] != '"' && customQuote == '\"') {
-                        curVal.append('"');
-                    }
-
-                    if (startCollectChar) {
-                        curVal.append('"');
-                    }
-
-                } else if (ch == separators) {
-
-                    result.add(curVal.toString());
-
-                    curVal = new StringBuffer();
-                    startCollectChar = false;
-
-                } else if (ch == '\r') {
-                    continue;
-                } else if (ch == '\n') {
-                    break;
-                } else {
-                    curVal.append(ch);
-                }
-            }
-        }
-
-        result.add(curVal.toString());
-
-        return result;
-    }
 
 }
