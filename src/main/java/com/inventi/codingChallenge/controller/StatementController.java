@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -73,5 +74,20 @@ public class StatementController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @PostMapping("/calculateBalance")
+    @ResponseBody
+    public BigDecimal calculateBalance( @RequestParam String accountNumber, @RequestParam(required = false, name="dateFrom") String dateFromParam, @RequestParam(required = false, name="dateTo") String dateToParam){
+        LocalDateTime dateFrom = LocalDateTime.parse("1800-01-01T00:00:00");
+        LocalDateTime dateTo = LocalDateTime.parse("3000-01-01T00:00:00");
+        if(dateFromParam != null) dateFrom = LocalDateTime.parse(dateFromParam);
+        if(dateToParam!=null) dateTo= LocalDateTime.parse(dateToParam);
+        List<Statement> statements = statementService.getStatementsByAccountNumber(accountNumber, dateFrom, dateTo);
+
+        return statements.stream()
+                .map(statement->statement.getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
     }
 }

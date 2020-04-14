@@ -15,4 +15,8 @@ public interface StatementRepository extends JpaRepository<Statement, Long> {
     @Query("SELECT s FROM Statement s  WHERE s.operationDate between :date_from and :date_to")
     List<Statement> getStatementsByDate(@Param("date_from")LocalDateTime dateFrom, @Param("date_to")LocalDateTime dateTo);
 
+
+    @Query("SELECT s FROM Statement s  WHERE s.accNumber=:account_number and s.operationDate between :date_from and :date_to")
+    List<Statement> getStatementsByAccountNumber(@Param("account_number")String accountNumber, @Param("date_from")LocalDateTime dateFrom, @Param("date_to")LocalDateTime dateTo);
+
 }

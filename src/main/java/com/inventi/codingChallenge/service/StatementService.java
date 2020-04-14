@@ -17,6 +17,8 @@ public interface StatementService {
 
     List<Statement> getStatementsByDate( LocalDateTime dateFrom, LocalDateTime dateTo);
 
+    List<Statement> getStatementsByAccountNumber( String accountNumber, LocalDateTime dateFrom, LocalDateTime dateTo);
+
     void calculateAccountBalance();
 
     void save(Statement statement);

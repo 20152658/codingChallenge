@@ -21,7 +21,6 @@ private static final Logger log = LoggerFactory.getLogger(StatementServiceImpl.c
 
     public void importStatement(Statement statement) {
         statementRepository.save(statement);
-
     }
 
     public List<Statement> findAllStatements() {
@@ -34,6 +33,11 @@ private static final Logger log = LoggerFactory.getLogger(StatementServiceImpl.c
         return statementRepository.getStatementsByDate(dateFrom, dateTo);
     }
 
+    @Override
+    public List<Statement> getStatementsByAccountNumber(String accountNumber, LocalDateTime dateFrom, LocalDateTime dateTo) {
+        log.debug(accountNumber + " " +dateFrom.toString()+ " " +dateTo.toString());
+        return statementRepository.getStatementsByAccountNumber(accountNumber, dateFrom, dateTo);
+    }
 
     public void calculateAccountBalance() {
 
