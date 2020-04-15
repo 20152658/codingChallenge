@@ -1,10 +1,10 @@
 package com.inventi.codingChallenge.controller;
 
-import com.inventi.codingChallenge.filePayload.UploadFileResponse;
+import com.inventi.codingChallenge.responses.CalculateBalanceResponse;
+import com.inventi.codingChallenge.responses.UploadFileResponse;
 import com.inventi.codingChallenge.model.Statement;
-import com.inventi.codingChallenge.service.FileStorageService;
 import com.inventi.codingChallenge.service.StatementService;
-import com.inventi.codingChallenge.utils.CSVUtils;
+import com.inventi.codingChallenge.utils.Utils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.math.BigDecimal;
@@ -27,34 +27,26 @@ import java.util.*;
 public class StatementController {
 
     @Autowired
-    private FileStorageService fileStorageService;
-    @Autowired
     private StatementService statementService;
 
     private final static Logger log = LoggerFactory.getLogger(StatementController.class);
 
     @PostMapping("/uploadStatements")
-    public UploadFileResponse uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-        String fileName = fileStorageService.storeFile(file);
-
-        try (Reader in = new FileReader(CSVUtils.convertMultiPartToFile(file))) {
+    public UploadFileResponse uploadStatements(@RequestParam("file") MultipartFile file) throws IOException {
+        try (Reader in = new FileReader(Utils.convertMultiPartToFile(file))) {
             Iterable<CSVRecord> records = CSVFormat.EXCEL.parse(in);
-            statementService.saveAll(CSVUtils.convertCSVLineToStatement(records));
+            statementService.saveAll(Utils.convertCSVLineToStatement(records));
         } catch (Exception e) {
             e.printStackTrace();
+            return new UploadFileResponse();
         }
-        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/downloadFile/")
-                .path(fileName)
-                .toUriString();
-        return new UploadFileResponse(fileName, fileDownloadUri,
+        return new UploadFileResponse(file.getName(),
                 file.getContentType(), file.getSize());
     }
 
-    @PostMapping("/exportFile")
+    @PostMapping("/exportStatements")
     @ResponseBody
-    public void exportFile(HttpServletResponse response, @RequestParam(required = false, name="dateFrom") String dateFromParam, @RequestParam(required = false, name="dateTo") String dateToParam) {
-        String filename = "statements.csv";
+    public void exportStatements(HttpServletResponse response, @RequestParam(required = false, name="dateFrom") String dateFromParam, @RequestParam(required = false, name="dateTo") String dateToParam) {
         CSVPrinter csvPrinter;
         LocalDateTime dateFrom = LocalDateTime.parse("1800-01-01T00:00:00");
         LocalDateTime dateTo = LocalDateTime.parse("3000-01-01T00:00:00");
@@ -64,12 +56,14 @@ public class StatementController {
         try {
             response.setContentType("text/csv");
             response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
-                    "attachment; filename=\"" + filename + "\"");
+                    "attachment; filename=statements.csv");
             csvPrinter = new CSVPrinter(response.getWriter(),
                     CSVFormat.EXCEL);
             for (Statement statement : statements) {
-                csvPrinter.printRecord(Arrays.asList(statement));
+                //csvPrinter.printRecord(Arrays.asList(statement));
+                csvPrinter.printRecords(statement);
             }
+
             csvPrinter.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -78,16 +72,15 @@ public class StatementController {
 
     @PostMapping("/calculateBalance")
     @ResponseBody
-    public BigDecimal calculateBalance( @RequestParam String accountNumber, @RequestParam(required = false, name="dateFrom") String dateFromParam, @RequestParam(required = false, name="dateTo") String dateToParam){
+    public CalculateBalanceResponse calculateBalance(@RequestParam String accountNumber, @RequestParam(required = false, name="dateFrom") String dateFromParam, @RequestParam(required = false, name="dateTo") String dateToParam){
+
         LocalDateTime dateFrom = LocalDateTime.parse("1800-01-01T00:00:00");
         LocalDateTime dateTo = LocalDateTime.parse("3000-01-01T00:00:00");
         if(dateFromParam != null) dateFrom = LocalDateTime.parse(dateFromParam);
         if(dateToParam!=null) dateTo= LocalDateTime.parse(dateToParam);
         List<Statement> statements = statementService.getStatementsByAccountNumber(accountNumber, dateFrom, dateTo);
-
-        return statements.stream()
-                .map(statement->statement.getAmount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal balance = Utils.calculateStatementsBalance(statements);
+        return new CalculateBalanceResponse(accountNumber, balance);
 
     }
 }
