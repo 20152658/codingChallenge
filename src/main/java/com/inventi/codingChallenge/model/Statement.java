@@ -20,7 +20,7 @@ public class Statement {
     private int id;
 
     @Column(name = "Account_number", nullable = false)
-    private String accNumber;
+    private String accountNumber;
 
     @Column(name = "Operation_date", nullable = false)
     private LocalDateTime operationDate;
@@ -29,7 +29,7 @@ public class Statement {
     private String beneficiary;
 
     @Column(name = "Trans_comment")
-    private String transComment;
+    private String transactionComment;
 
     @Column(name = "Amount", nullable = false)
     private BigDecimal amount;
